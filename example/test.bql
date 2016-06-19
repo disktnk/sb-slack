@@ -1,0 +1,8 @@
+CREATE SOURCE s TYPE slack;
+
+CREATE STREAM msg AS SELECT RSTREAM
+    s.token || s.user_name || s.text AS text
+FROM s [RANGE 1 TUPLES];
+
+CREATE SINK s TYPE slack;
+INSERT INTO s FROM msg;

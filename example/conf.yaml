@@ -1,0 +1,8 @@
+network:
+  listen_on: ':15601'
+topologies:
+  test:
+    bql_file: 'test.bql'
+logging:
+  log_dropped_tuples:       true
+  summarize_dropped_tuples: true
