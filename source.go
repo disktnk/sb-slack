@@ -1,7 +1,6 @@
 package slack
 
 import (
-	"fmt"
 	"gopkg.in/sensorbee/sensorbee.v0/bql"
 	"gopkg.in/sensorbee/sensorbee.v0/core"
 	"gopkg.in/sensorbee/sensorbee.v0/data"
@@ -34,16 +33,16 @@ func NewSource(ctx *core.Context, ioParams *bql.IOParams, params data.Map) (
 	}
 
 	l := listener{
-		msgCh: make(chan message),
+		msgCh:  make(chan message),
+		stopCh: make(chan struct{}),
 	}
 
 	// TODO: using gocraft/web is better
 	ctx.Log().Infof("listening server has started, port%v", port)
 	http.HandleFunc(apiHeader, l.bind)
-	err := http.ListenAndServe(port, nil)
-	if err != nil {
-		return nil, err
-	}
+	go func() {
+		http.ListenAndServe(port, nil) // TODO: catch error
+	}()
 
 	return &l, nil
 }
@@ -61,7 +60,8 @@ type message struct {
 }
 
 type listener struct {
-	msgCh chan message
+	msgCh  chan message
+	stopCh chan struct{}
 }
 
 func (l *listener) bind(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,6 @@ func (l *listener) bind(w http.ResponseWriter, r *http.Request) {
 	userName := r.FormValue("user_name")
 	text := r.FormValue("text")
 	triggerWord := r.FormValue("trigger_word")
-	fmt.Println(text)
 
 	msg := message{
 		token:       token,
@@ -92,32 +91,39 @@ func (l *listener) bind(w http.ResponseWriter, r *http.Request) {
 }
 
 func (l *listener) GenerateStream(ctx *core.Context, w core.Writer) error {
-	msg := <-l.msgCh
-	m := data.Map{
-		"token":        data.String(msg.token),
-		"team_id":      data.String(msg.teamID),
-		"channel_id":   data.String(msg.channelID),
-		"channel_name": data.String(msg.channelName),
-		"timestamp":    data.String(msg.timestamp),
-		"user_id":      data.String(msg.userID),
-		"user_name":    data.String(msg.userName),
-		"text":         data.String(msg.text),
-		"trigger_word": data.String(msg.triggerWord),
-	}
-	now := time.Now()
-	t := &core.Tuple{
-		Data:          m,
-		Timestamp:     now, // TODO: should use message timestamp
-		ProcTimestamp: now,
-		Trace:         []core.TraceEvent{},
-	}
-	if err := w.Write(ctx, t); err != nil {
-		return err
+	for {
+		select {
+		case msg := <-l.msgCh:
+			m := data.Map{
+				"token":        data.String(msg.token),
+				"team_id":      data.String(msg.teamID),
+				"channel_id":   data.String(msg.channelID),
+				"channel_name": data.String(msg.channelName),
+				"timestamp":    data.String(msg.timestamp),
+				"user_id":      data.String(msg.userID),
+				"user_name":    data.String(msg.userName),
+				"text":         data.String(msg.text),
+				"trigger_word": data.String(msg.triggerWord),
+			}
+			now := time.Now()
+			t := &core.Tuple{
+				Data:          m,
+				Timestamp:     now, // TODO: should use message timestamp
+				ProcTimestamp: now,
+				Trace:         []core.TraceEvent{},
+			}
+			if err := w.Write(ctx, t); err != nil {
+				return err
+			}
+		case <-l.stopCh:
+			return core.ErrSourceStopped
+		}
 	}
 	return nil
 }
 
 func (l *listener) Stop(ctx *core.Context) error {
 	// TODO: graceful stop
+	close(l.stopCh)
 	return nil
 }
