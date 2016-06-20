@@ -82,11 +82,11 @@ type webHook struct {
 }
 
 type payload struct {
-	channel   string `json:"channel"`
-	username  string `json:"username"`
-	text      string `json:"text"`
-	iconURL   string `json:"icon_url,omitempty"`
-	iconEmoji string `json:"icon_emoji,omitempty"`
+	Channel   string `json:"channel"`
+	Username  string `json:"username"`
+	Text      string `json:"text"`
+	IconURL   string `json:"icon_url,omitempty"`
+	IconEmoji string `json:"icon_emoji,omitempty"`
 }
 
 func (h *webHook) Write(ctx *core.Context, t *core.Tuple) error {
@@ -120,14 +120,14 @@ func (h *webHook) Write(ctx *core.Context, t *core.Tuple) error {
 	}
 
 	p := payload{
-		channel:  channel,
-		username: username,
-		text:     text,
+		Channel:  channel,
+		Username: username,
+		Text:     text,
 	}
 
 	if iu, err := t.Data.Get(iconURLPath); err != nil {
 		if h.iconURL != "" {
-			p.iconURL = h.iconURL
+			p.IconURL = h.iconURL
 		}
 	} else {
 		h.iconURL, err = data.AsString(iu)
@@ -137,7 +137,7 @@ func (h *webHook) Write(ctx *core.Context, t *core.Tuple) error {
 	}
 	if ie, err := t.Data.Get(iconEmojiPath); err != nil {
 		if h.iconEmoji != "" {
-			p.iconEmoji = h.iconEmoji
+			p.IconEmoji = h.iconEmoji
 		}
 	} else {
 		if h.iconURL != "" {
