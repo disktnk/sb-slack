@@ -1,0 +1,12 @@
+CREATE SOURCE s TYPE slack;
+
+CREATE STREAM msg AS SELECT RSTREAM
+    "get text: " || text AS text
+FROM s [RANGE 1 TUPLES]
+WHERE user_name = "<username>"; -- need to filter
+
+CREATE SINK t TYPE slack WITH
+    hook="<hook address>",
+    default_channel="<channel name>",
+    default_username="<user name>";
+INSERT INTO t FROM msg;
