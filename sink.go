@@ -82,36 +82,14 @@ type webHook struct {
 }
 
 type payload struct {
-	Channel   string `json:"channel"`
-	Username  string `json:"username"`
+	Channel   string `json:"channel,omitempty"`
+	Username  string `json:"username,omitempty"`
 	Text      string `json:"text"`
 	IconURL   string `json:"icon_url,omitempty"`
 	IconEmoji string `json:"icon_emoji,omitempty"`
 }
 
 func (h *webHook) Write(ctx *core.Context, t *core.Tuple) error {
-	channel := h.channel
-	if ch, err := t.Data.Get(channelPath); err != nil {
-		if h.channel == "" {
-			return err
-		}
-	} else {
-		channel, err = data.AsString(ch)
-		if err != nil {
-			return err
-		}
-	}
-	username := h.username
-	if un, err := t.Data.Get(usernamePath); err != nil {
-		if h.username == "" {
-			return err
-		}
-	} else {
-		username, err = data.AsString(un)
-		if err != nil {
-			return err
-		}
-	}
 	text := ""
 	if txt, err := t.Data.Get(textPath); err != nil {
 		return err
@@ -120,9 +98,20 @@ func (h *webHook) Write(ctx *core.Context, t *core.Tuple) error {
 	}
 
 	p := payload{
-		Channel:  channel,
-		Username: username,
-		Text:     text,
+		Text: text,
+	}
+
+	if ch, err := t.Data.Get(channelPath); err == nil {
+		p.Channel, err = data.AsString(ch)
+		if err != nil {
+			return err
+		}
+	}
+	if un, err := t.Data.Get(usernamePath); err == nil {
+		p.Username, err = data.AsString(un)
+		if err != nil {
+			return err
+		}
 	}
 
 	if iu, err := t.Data.Get(iconURLPath); err != nil {
@@ -130,7 +119,7 @@ func (h *webHook) Write(ctx *core.Context, t *core.Tuple) error {
 			p.IconURL = h.iconURL
 		}
 	} else {
-		h.iconURL, err = data.AsString(iu)
+		p.IconURL, err = data.AsString(iu)
 		if err != nil {
 			return err
 		}
@@ -145,7 +134,7 @@ func (h *webHook) Write(ctx *core.Context, t *core.Tuple) error {
 				"cannot set both 'icon_url' and 'icon_emoji', '%s' is used as priority",
 				h.iconURL) // TODO it is possible to occur many warning log...
 		} else {
-			h.iconEmoji, err = data.AsString(ie)
+			p.IconEmoji, err = data.AsString(ie)
 			if err != nil {
 				return err
 			}
