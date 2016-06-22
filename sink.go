@@ -101,13 +101,21 @@ func (h *webHook) Write(ctx *core.Context, t *core.Tuple) error {
 		Text: text,
 	}
 
-	if ch, err := t.Data.Get(channelPath); err == nil {
+	if ch, err := t.Data.Get(channelPath); err != nil {
+		if h.channel != "" {
+			p.Channel = h.channel
+		}
+	} else {
 		p.Channel, err = data.AsString(ch)
 		if err != nil {
 			return err
 		}
 	}
-	if un, err := t.Data.Get(usernamePath); err == nil {
+	if un, err := t.Data.Get(usernamePath); err != nil {
+		if h.username != "" {
+			p.Username = h.username
+		}
+	} else {
 		p.Username, err = data.AsString(un)
 		if err != nil {
 			return err
