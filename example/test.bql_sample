@@ -1,8 +1,8 @@
 CREATE SOURCE s TYPE slack;
 
 CREATE STATE token TYPE mstranslate WITH
-    client_id = "<cliend id>",
-    client_secret = "<cliend key>";
+    client_id = "<client id>",
+    client_secret = "<client key>";
 
 CREATE STREAM msg AS SELECT RSTREAM
     mstranslate("token", "ja", "en", text) AS translated,
