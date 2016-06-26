@@ -38,7 +38,7 @@ func NewSource(ctx *core.Context, ioParams *bql.IOParams, params data.Map) (
 	}
 
 	// TODO: using gocraft/web is better
-	ctx.Log().Infof("listening server has started, port%v", port)
+	ctx.Log().Infof("listening server has started, port: %v", port)
 	http.HandleFunc(apiHeader, l.bind)
 	go func() {
 		http.ListenAndServe(port, nil) // TODO: catch error
