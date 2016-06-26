@@ -15,6 +15,12 @@ var (
 	portPath      = data.MustCompilePath("port")
 )
 
+// NewSource returns a HTTP listener, which has started to listening when
+// create.
+//
+// "api_header": option value, default: "/"
+//
+// "port": option value, default: 15619
 func NewSource(ctx *core.Context, ioParams *bql.IOParams, params data.Map) (
 	core.Source, error) {
 	apiHeader := "/"
