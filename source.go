@@ -4,6 +4,7 @@ import (
 	"gopkg.in/sensorbee/sensorbee.v0/bql"
 	"gopkg.in/sensorbee/sensorbee.v0/core"
 	"gopkg.in/sensorbee/sensorbee.v0/data"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -35,14 +36,20 @@ func NewSource(ctx *core.Context, ioParams *bql.IOParams, params data.Map) (
 	l := listener{
 		msgCh:  make(chan message),
 		stopCh: make(chan struct{}),
+		errCh:  make(chan error),
 	}
 
-	// TODO: using gocraft/web is better
-	ctx.Log().Infof("listening server has started, port: %v", port)
-	http.HandleFunc(apiHeader, l.bind)
+	nl, err := net.Listen("tcp", port)
+	if err != nil {
+		return nil, err
+	}
+	l.netListner = nl
 	go func() {
-		http.ListenAndServe(port, nil) // TODO: catch error
+		mux := http.NewServeMux()
+		mux.HandleFunc(apiHeader, l.bind)
+		l.errCh <- http.Serve(nl, mux)
 	}()
+	ctx.Log().Infof("listening server has started, port%v", port)
 
 	return &l, nil
 }
@@ -60,8 +67,10 @@ type message struct {
 }
 
 type listener struct {
-	msgCh  chan message
-	stopCh chan struct{}
+	msgCh      chan message
+	stopCh     chan struct{}
+	errCh      chan error
+	netListner net.Listener
 }
 
 func (l *listener) bind(w http.ResponseWriter, r *http.Request) {
@@ -115,6 +124,8 @@ func (l *listener) GenerateStream(ctx *core.Context, w core.Writer) error {
 			if err := w.Write(ctx, t); err != nil {
 				return err
 			}
+		case err := <-l.errCh:
+			return err
 		case <-l.stopCh:
 			return core.ErrSourceStopped
 		}
@@ -123,7 +134,6 @@ func (l *listener) GenerateStream(ctx *core.Context, w core.Writer) error {
 }
 
 func (l *listener) Stop(ctx *core.Context) error {
-	// TODO: graceful stop
 	close(l.stopCh)
-	return nil
+	return l.netListner.Close()
 }
