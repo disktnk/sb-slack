@@ -19,10 +19,29 @@ var (
 	channelPath          = data.MustCompilePath("channel")
 	usernamePath         = data.MustCompilePath("username")
 	textPath             = data.MustCompilePath("text")
+	attachmentsPath      = data.MustCompilePath("attachments")
 	iconURLPath          = data.MustCompilePath("icon_url")
 	iconEmojiPath        = data.MustCompilePath("icon_emoji")
 )
 
+// NewSink returns a sink to POST slack messages.
+//
+// "hook": required value, use incomming webhook integration address.
+//
+// "default_channel": option value, default: "". If empty, tuples are emit
+// to the address set by incomming webhook. Channel name can be overwritten
+// by tuples' "channel" key.
+//
+// "default_username": option value, default: "". If empty, displayed user
+// name is set by incomming webhook. User name can be overwritten by tuples'
+// "username" key.
+//
+// "default_icon_url": option value, default: "". If empty, displayed icon
+// is set by incomming webhook. Icon URL can be overwritten by tuples'
+// "icon_url" key.
+//
+// "default_icon_emoji": option value, default: "". Spec is same as
+// "default_icon_url". Overrides "icon_url".
 func NewSink(ctx *core.Context, ioParams *bql.IOParams, params data.Map) (
 	core.Sink, error) {
 	addr, err := params.Get(hookPath)
@@ -57,12 +76,6 @@ func NewSink(ctx *core.Context, ioParams *bql.IOParams, params data.Map) (
 			return nil, err
 		}
 	}
-	if iconURL != "" && iconEmoji != "" {
-		ctx.Log().Warnf(
-			"cannot set both 'icon_url' and 'icon_emoji', '%s' is used as priority",
-			iconURL)
-		iconEmoji = ""
-	}
 
 	return &webHook{
 		hookURL:   hookURL,
@@ -82,23 +95,30 @@ type webHook struct {
 }
 
 type payload struct {
-	Channel   string `json:"channel,omitempty"`
-	Username  string `json:"username,omitempty"`
-	Text      string `json:"text"`
-	IconURL   string `json:"icon_url,omitempty"`
-	IconEmoji string `json:"icon_emoji,omitempty"`
+	Channel     string     `json:"channel,omitempty"`
+	Username    string     `json:"username,omitempty"`
+	Text        string     `json:"text"`
+	Attachments data.Array `json:"attachments,omitempty"`
+	IconURL     string     `json:"icon_url,omitempty"`
+	IconEmoji   string     `json:"icon_emoji,omitempty"`
 }
 
 func (h *webHook) Write(ctx *core.Context, t *core.Tuple) error {
 	text := ""
-	if txt, err := t.Data.Get(textPath); err != nil {
-		return err
-	} else if text, err = data.AsString(txt); err != nil {
-		return err
+	if txt, err := t.Data.Get(textPath); err == nil {
+		if text, err = data.AsString(txt); err != nil {
+			return err
+		}
 	}
-
 	p := payload{
 		Text: text,
+	}
+	attachments := data.Array{}
+	if att, err := t.Data.Get(attachmentsPath); err == nil {
+		if attachments, err = data.AsArray(att); err != nil {
+			return err
+		}
+		p.Attachments = attachments
 	}
 
 	if ch, err := t.Data.Get(channelPath); err != nil {
@@ -137,15 +157,9 @@ func (h *webHook) Write(ctx *core.Context, t *core.Tuple) error {
 			p.IconEmoji = h.iconEmoji
 		}
 	} else {
-		if h.iconURL != "" {
-			ctx.Log().Warnf(
-				"cannot set both 'icon_url' and 'icon_emoji', '%s' is used as priority",
-				h.iconURL) // TODO it is possible to occur many warning log...
-		} else {
-			p.IconEmoji, err = data.AsString(ie)
-			if err != nil {
-				return err
-			}
+		p.IconEmoji, err = data.AsString(ie)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -158,7 +172,7 @@ func post(url string, p payload) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonByte))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonByte))
 	if err != nil {
 		return err
 	}
