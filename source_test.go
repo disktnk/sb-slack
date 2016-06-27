@@ -33,7 +33,7 @@ func TestNewSource(t *testing.T) {
 				go func() {
 					l.GenerateStream(ctx, w)
 				}()
-				Convey("Then the source listens on default address", func() {
+				Convey("Then the source should listen on default address", func() {
 					value := url.Values{
 						"token":        {"token"},
 						"team_id":      {"team_id"},
@@ -106,6 +106,32 @@ func TestNewSource(t *testing.T) {
 					So(lt.Data["trigger_word"], ShouldEqual, "trigger_word")
 					So(err, ShouldBeNil)
 				})
+			})
+		})
+	})
+}
+
+func TestNewSourceWithError(t *testing.T) {
+	Convey("Given a test context", t, func() {
+		cc := &core.ContextConfig{}
+		ctx := core.NewContext(cc)
+		ioParams := &bql.IOParams{}
+		Convey("When create a source with error api header", func() {
+			params := data.Map{
+				"api_header": data.True,
+			}
+			Convey("Then an error should be occurred", func() {
+				_, err := NewSource(ctx, ioParams, params)
+				So(err, ShouldNotBeNil)
+			})
+		})
+		Convey("When create a source with error port", func() {
+			params := data.Map{
+				"port": data.Float(1000.01),
+			}
+			Convey("Then an error should be occurred", func() {
+				_, err := NewSource(ctx, ioParams, params)
+				So(err, ShouldNotBeNil)
 			})
 		})
 	})

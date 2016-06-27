@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"fmt"
 	"gopkg.in/sensorbee/sensorbee.v0/bql"
 	"gopkg.in/sensorbee/sensorbee.v0/core"
 	"gopkg.in/sensorbee/sensorbee.v0/data"
@@ -31,11 +32,13 @@ func NewSource(ctx *core.Context, ioParams *bql.IOParams, params data.Map) (
 	}
 	port := ":15619"
 	if po, err := params.Get(portPath); err == nil {
-		if port, err = data.ToString(po); err != nil {
-			return nil, nil
+		if portInt, err := data.AsInt(po); err == nil {
+			port = fmt.Sprintf("%d", portInt)
+		} else if port, err = data.AsString(po); err != nil {
+			return nil, err
 		}
 		if !strings.HasPrefix(port, ":") {
-			port = ":" + port
+			port = fmt.Sprintf(":%s", port)
 		}
 	}
 
