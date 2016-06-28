@@ -26,18 +26,18 @@ var (
 
 // NewSink returns a sink to POST slack messages.
 //
-// "hook": required value, use incomming webhook integration address.
+// "hook": required value, use incoming webhooks integration address.
 //
 // "default_channel": option value, default: "". If empty, tuples are emit
-// to the address set by incomming webhook. Channel name can be overwritten
+// to the address set by incoming webhooks. Channel name can be overwritten
 // by tuples' "channel" key.
 //
 // "default_username": option value, default: "". If empty, displayed user
-// name is set by incomming webhook. User name can be overwritten by tuples'
+// name is set by incoming webhooks. User name can be overwritten by tuples'
 // "username" key.
 //
 // "default_icon_url": option value, default: "". If empty, displayed icon
-// is set by incomming webhook. Icon URL can be overwritten by tuples'
+// is set by incoming webhooks. Icon URL can be overwritten by tuples'
 // "icon_url" key.
 //
 // "default_icon_emoji": option value, default: "". Spec is same as
