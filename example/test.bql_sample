@@ -11,11 +11,10 @@ FROM s [RANGE 1 TUPLES]
 WHERE user_name <> "slackbot";
 
 CREATE STREAM t_msg AS SELECT RSTREAM
-    translated || " < " || message.text AS text
+    translated AS text,
+    [{"text": message.text, "color": "#36a64f"}] AS attachments
 FROM msg [RANGE 1 TUPLES];
 
 CREATE SINK t TYPE slack WITH
-    hook="<hook address>",
-    default_channel="<target channel name>",
-    default_username="<bot user name>";
+    hook="<hook address>";
 INSERT INTO t FROM t_msg;
