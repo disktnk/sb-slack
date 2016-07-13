@@ -1,4 +1,4 @@
 --- # SensorBee plug-in list
 plugins:
-- pfi/tanakad/sb-slack/plugin
-- pfi/tanakad/sb-mstranslator/plugin
+- github.com/disktnk/sb-slack/plugin
+- github.com/disktnk/sb-mstranslator/plugin

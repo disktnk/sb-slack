@@ -1,8 +1,8 @@
 package plugin
 
 import (
+	slack "github.com/disktnk/sb-slack"
 	"gopkg.in/sensorbee/sensorbee.v0/bql"
-	slack "pfi/tanakad/sb-slack"
 )
 
 func init() {

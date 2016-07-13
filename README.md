@@ -1,6 +1,6 @@
 # Slack plugin
 
-`go get pfi/tanakad/sb-slack`
+`go get github.com/disktnk/sb-slack`
 
 ## Source
 
